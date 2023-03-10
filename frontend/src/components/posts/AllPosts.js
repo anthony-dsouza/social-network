@@ -6,8 +6,12 @@ function AllPosts(props) {
          <Post
         key={post.id}
         id={post.id}
-        user={post.user}
+        avatar={post.avatar}
+        fname={post.fname}
+        lname={post.lname}
+        nname={post.nname}
         content={post.content}
+        image={post.image}
         date={post.date} 
         />
         ))}

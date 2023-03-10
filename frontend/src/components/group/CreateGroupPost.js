@@ -4,7 +4,7 @@ import FormTextarea from "../UI/FormTextarea";
 import SmallButton from "../UI/SmallButton";
 import classes from './CreateGroupPost.module.css';
 
-function CreatePost(props) {
+function CreateGroupPost(props) {
 // const titleInput = useRef();
 const contentInput = useRef();
 
@@ -37,4 +37,4 @@ const contentInput = useRef();
     </form>
 }
 
-export default CreatePost;
+export default CreateGroupPost;
