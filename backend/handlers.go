@@ -6,7 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+
+	uuid "github.com/satori/go.uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func UrlPathMatcher(w http.ResponseWriter, r *http.Request, p string) error {
@@ -152,13 +156,24 @@ func Reghandler() http.HandlerFunc {
 		}
 
 		// Declares the variables to store the registration details and handler response
-		var regPayload crud.User
+		var regPayload crud.CreateUserParams
 		Resp := AuthResponse{Success: true}
+		Resp.Label = "reg"
 
 		// Decodes the json object to the struct, changing the response to false if it fails
 		err := json.NewDecoder(r.Body).Decode(&regPayload)
 		if err != nil {
 			Resp.Success = false
+		}
+
+		// convert password using bcrypt
+		password := []byte(regPayload.Password)
+		cryptPw, err := bcrypt.GenerateFromPassword(password, 10)
+		regPayload.Password = string(cryptPw)
+
+		if err != nil {
+			Resp.Success = false
+			fmt.Println("Unable generate password!")
 		}
 
 		// ### CONNECT TO DATABASE ###
@@ -178,11 +193,34 @@ func Reghandler() http.HandlerFunc {
 
 		records, err := query.GetUserExist(context.Background(), checkExist)
 
+		if err != nil {
+			Resp.Success = false
+			fmt.Println("Unable to check if user exists")
+		}
+
 		if records > 0 {
 			// user already exists
-
+			Resp.Success = false
 		} else {
+
 			// ### ATTEMPT TO ADD USER TO DATABASE ###
+			var curUser crud.User
+			curUser, err := query.CreateUser(context.Background(), regPayload)
+
+			if err != nil {
+				Resp.Success = false
+				fmt.Println("Unable to create user!")
+			}
+
+			// create cookie
+			var cookie SessionCookie
+
+			cookie.SessionToken = uuid.NewV4().String()
+			cookie.Userid = int(curUser.ID)
+			cookie.MaxAge = 1800
+
+			Resp.Cookie = cookie
+
 		}
 
 		// Marshals the response struct to a json object

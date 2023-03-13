@@ -1,9 +1,9 @@
 package backend
 
 type SessionCookie struct {
-	Uid    int    `json:"uid"`
-	Sid    string `json:"sid"`
-	MaxAge int    `json:"max_age"`
+	Userid       int    `json:"user_id"`
+	SessionToken string `json:"session_id"`
+	MaxAge       int    `json:"max_age"`
 }
 
 type AuthResponse struct {
