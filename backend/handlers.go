@@ -35,69 +35,69 @@ func Homehandler() http.HandlerFunc {
 	}
 }
 
-func SessionHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Prevents the endpoint being called from other url paths
-		if err := UrlPathMatcher(w, r, "/session"); err != nil {
-			return
-		}
+// func SessionHandler() http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		// Prevents the endpoint being called from other url paths
+// 		if err := UrlPathMatcher(w, r, "/session"); err != nil {
+// 			return
+// 		}
 
-		switch r.Method {
-		case http.MethodGet:
-			// Declares the payload struct
-			var Resp SessionStruct
+// 		switch r.Method {
+// 		case http.MethodGet:
+// 			// Declares the payload struct
+// 			var Resp SessionStruct
 
-			// ### CONNECT TO DATABASE ###
+// 			// ### CONNECT TO DATABASE ###
 
-			// db := db.DbConnect()
+// 			// db := db.DbConnect()
 
-			// var query *crud.Queries
-			// query = crud.New(db)
+// 			// var query *crud.Queries
+// 			// query = crud.New(db)
 
-			// ### GET SESSION FOR USER ###
+// 			// ### GET SESSION FOR USER ###
 
-			// Resp, err := query.GetUserId(context.Background(), r.Cookie())
+// 			// Resp, err := query.GetUserId(context.Background(), r.Cookie())
 
-			// Marshals the response struct to a json object
-			jsonResp, err := json.Marshal(Resp)
-			if err != nil {
-				http.Error(w, "500 internal server error", http.StatusInternalServerError)
-				return
-			}
+// 			// Marshals the response struct to a json object
+// 			jsonResp, err := json.Marshal(Resp)
+// 			if err != nil {
+// 				http.Error(w, "500 internal server error", http.StatusInternalServerError)
+// 				return
+// 			}
 
-			// Sets the http headers and writes the response to the browser
-			WriteHttpHeader(jsonResp, w)
-		case http.MethodPost:
-			// Declares the variables to store the session details and handler response
-			var follower SessionStruct
-			Resp := AuthResponse{Success: true}
+// 			// Sets the http headers and writes the response to the browser
+// 			WriteHttpHeader(jsonResp, w)
+// 		case http.MethodPost:
+// 			// Declares the variables to store the session details and handler response
+// 			var follower SessionStruct
+// 			Resp := AuthResponse{Success: true}
 
-			// Decodes the json object to the struct, changing the response to false if it fails
-			err := json.NewDecoder(r.Body).Decode(&follower)
-			if err != nil {
-				Resp.Success = false
-			}
+// 			// Decodes the json object to the struct, changing the response to false if it fails
+// 			err := json.NewDecoder(r.Body).Decode(&follower)
+// 			if err != nil {
+// 				Resp.Success = false
+// 			}
 
-			// ### CONNECT TO DATABASE ###
+// 			// ### CONNECT TO DATABASE ###
 
-			// ### ADD/UPDATE SESSION FOR USER ###
+// 			// ### ADD/UPDATE SESSION FOR USER ###
 
-			// Marshals the response struct to a json object
-			jsonResp, err := json.Marshal(Resp)
-			if err != nil {
-				http.Error(w, "500 internal server error", http.StatusInternalServerError)
-				return
-			}
+// 			// Marshals the response struct to a json object
+// 			jsonResp, err := json.Marshal(Resp)
+// 			if err != nil {
+// 				http.Error(w, "500 internal server error", http.StatusInternalServerError)
+// 				return
+// 			}
 
-			// Sets the http headers and writes the response to the browser
-			WriteHttpHeader(jsonResp, w)
-		default:
-			// Prevents all request types other than POST and GET
-			http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-	}
-}
+// 			// Sets the http headers and writes the response to the browser
+// 			WriteHttpHeader(jsonResp, w)
+// 		default:
+// 			// Prevents all request types other than POST and GET
+// 			http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+// 			return
+// 		}
+// 	}
+// }
 
 func Loginhandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -199,8 +199,10 @@ func Reghandler() http.HandlerFunc {
 		}
 
 		if records > 0 {
+
 			// user already exists
 			Resp.Success = false
+
 		} else {
 
 			// ### ATTEMPT TO ADD USER TO DATABASE ###
@@ -220,6 +222,14 @@ func Reghandler() http.HandlerFunc {
 			cookie.MaxAge = 1800
 
 			Resp.Cookie = cookie
+
+			// add session to database
+			var session crud.CreateSessionParams
+			_, err = query.CreateSession(context.Background(), session)
+
+			if err != nil {
+				fmt.Println("Unable to create session!")
+			}
 
 		}
 
