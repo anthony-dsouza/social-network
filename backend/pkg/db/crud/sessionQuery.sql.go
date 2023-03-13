@@ -51,3 +51,15 @@ func (q *Queries) GetUserId(ctx context.Context, sessionToken string) (SessionTa
 	err := row.Scan(&i.SessionToken, &i.UserID)
 	return i, err
 }
+
+const sessionExists = `-- name: SessionExists :one
+SELECT COUNT(*) FROM session_table
+WHERE user_id = ? LIMIT 1
+`
+
+func (q *Queries) SessionExists(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, sessionExists, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}

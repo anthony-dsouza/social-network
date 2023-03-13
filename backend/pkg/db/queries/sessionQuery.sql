@@ -13,3 +13,7 @@ RETURNING *;
 -- name: DeleteSession :exec
 DELETE FROM session_table
 WHERE session_token = ?;
+
+-- name: SessionExists :one
+SELECT COUNT(*) FROM session_table
+WHERE user_id = ? LIMIT 1;

@@ -113,22 +113,83 @@ func Loginhandler() http.HandlerFunc {
 		}
 
 		// Declares the variables to store the login details and handler response
-		var payload loginPayload
+		var payload crud.CreateUserParams
 		Resp := AuthResponse{Success: true}
 		Resp.Label = "login"
 		// Decodes the json object to the struct, changing the response to false if it fails
 		err := json.NewDecoder(r.Body).Decode(&payload)
 		if err != nil {
 			Resp.Success = false
+			fmt.Println("Unable to unmarshall json!")
 		}
 
 		// ### CONNECT TO DATABASE ###
 
+		db := db.DbConnect()
+
+		var query *crud.Queries
+
+		query = crud.New(db)
+
 		// ### SEARCH DATABASE FROM USER ###
+
+		curUser, err := query.GetUser(context.Background(), payload.NickName)
+
+		if err != nil {
+			Resp.Success = false
+			fmt.Println("Unable to find user")
+		}
+
+		// to records returned
+
+		if curUser.Count < 1 {
+			Resp.Success = false
+			fmt.Println("Unable to find user")
+		}
 
 		// ### COMPARE PASSWORD WITH THE HASH IN THE DATABASE (SKIP IF USER NOT FOUND) ###
 
+		err = bcrypt.CompareHashAndPassword([]byte(curUser.Password), []byte(payload.Password))
+		if err != nil {
+			Resp.Success = false
+			fmt.Println("Passwords do not match!")
+		}
+
 		// ### UPDATE SESSION COOKIE IN DATABASE AND BROWSER (SKIP IF USER NOT FOUND OR IF PASSWORD DOES NOT MATCH) ###
+		// if session exists then use logout handler
+
+		sessionExist, err := query.SessionExists(context.Background(), curUser.ID)
+
+		if err != nil {
+			Resp.Success = false
+			fmt.Println("Unable to check session table!")
+		}
+
+		if sessionExist > 0 {
+			// call logout handler
+			Logouthandler()
+		}
+
+		// if resp.success true then create session cookie
+		if Resp.Success {
+			// add new session
+			// create cookie
+			var cookie SessionCookie
+
+			cookie.SessionToken = uuid.NewV4().String()
+			cookie.Userid = int(curUser.ID)
+			cookie.MaxAge = 1800
+
+			Resp.Cookie = cookie
+
+			// add session to database
+			var session crud.CreateSessionParams
+			_, err = query.CreateSession(context.Background(), session)
+
+			if err != nil {
+				fmt.Println("Unable to create session!")
+			}
+		}
 
 		// Marshals the response struct to a json object
 		jsonResp, err := json.Marshal(Resp)
