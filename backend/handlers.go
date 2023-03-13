@@ -1,6 +1,9 @@
 package backend
 
 import (
+	"backend/pkg/db/crud"
+	db "backend/pkg/db/sqlite"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -42,7 +45,14 @@ func SessionHandler() http.HandlerFunc {
 
 			// ### CONNECT TO DATABASE ###
 
+			// db := db.DbConnect()
+
+			// var query *crud.Queries
+			// query = crud.New(db)
+
 			// ### GET SESSION FOR USER ###
+
+			// Resp, err := query.GetUserId(context.Background(), r.Cookie())
 
 			// Marshals the response struct to a json object
 			jsonResp, err := json.Marshal(Resp)
@@ -101,7 +111,7 @@ func Loginhandler() http.HandlerFunc {
 		// Declares the variables to store the login details and handler response
 		var payload loginPayload
 		Resp := AuthResponse{Success: true}
-
+		Resp.Label = "login"
 		// Decodes the json object to the struct, changing the response to false if it fails
 		err := json.NewDecoder(r.Body).Decode(&payload)
 		if err != nil {
@@ -142,18 +152,38 @@ func Reghandler() http.HandlerFunc {
 		}
 
 		// Declares the variables to store the registration details and handler response
-		var payload regPayload
+		var regPayload crud.User
 		Resp := AuthResponse{Success: true}
 
 		// Decodes the json object to the struct, changing the response to false if it fails
-		err := json.NewDecoder(r.Body).Decode(&payload)
+		err := json.NewDecoder(r.Body).Decode(&regPayload)
 		if err != nil {
 			Resp.Success = false
 		}
 
 		// ### CONNECT TO DATABASE ###
 
-		// ### ATTEMPT TO ADD USER TO DATABASE ###
+		db := db.DbConnect()
+
+		var query *crud.Queries
+
+		query = crud.New(db)
+
+		// check if user already exists
+
+		var checkExist crud.GetUserExistParams
+
+		checkExist.Email = regPayload.Email
+		checkExist.NickName = regPayload.NickName
+
+		records, err := query.GetUserExist(context.Background(), checkExist)
+
+		if records > 0 {
+			// user already exists
+
+		} else {
+			// ### ATTEMPT TO ADD USER TO DATABASE ###
+		}
 
 		// Marshals the response struct to a json object
 		jsonResp, err := json.Marshal(Resp)

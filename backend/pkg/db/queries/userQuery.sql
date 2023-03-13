@@ -31,3 +31,8 @@ about = ?,
 public = ?
 WHERE id = ?
 RETURNING *;
+
+-- name: GetUserExist :one
+SELECT COUNT(*)
+FROM user
+WHERE email = ? OR nick_name = ?;

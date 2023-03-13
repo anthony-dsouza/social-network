@@ -92,6 +92,24 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 	return i, err
 }
 
+const getUserExist = `-- name: GetUserExist :one
+SELECT COUNT(*)
+FROM user
+WHERE email = ? OR nick_name = ?
+`
+
+type GetUserExistParams struct {
+	Email    string
+	NickName sql.NullString
+}
+
+func (q *Queries) GetUserExist(ctx context.Context, arg GetUserExistParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getUserExist, arg.Email, arg.NickName)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id, first_name, last_name, nick_name, email, password_, dob, image_, about, public FROM user
 ORDER BY nick_name
