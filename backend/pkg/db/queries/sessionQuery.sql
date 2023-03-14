@@ -17,3 +17,9 @@ WHERE session_token = ?;
 -- name: SessionExists :one
 SELECT COUNT(*) FROM session_table
 WHERE user_id = ? LIMIT 1;
+
+-- name: UpdateUserSession :one
+UPDATE session_table
+set session_token = ?
+WHERE user_id = ?
+RETURNING *;

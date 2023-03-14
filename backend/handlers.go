@@ -156,18 +156,12 @@ func Loginhandler() http.HandlerFunc {
 		}
 
 		// ### UPDATE SESSION COOKIE IN DATABASE AND BROWSER (SKIP IF USER NOT FOUND OR IF PASSWORD DOES NOT MATCH) ###
-		// if session exists then use logout handler
 
 		sessionExist, err := query.SessionExists(context.Background(), curUser.ID)
 
 		if err != nil {
 			Resp.Success = false
 			fmt.Println("Unable to check session table!")
-		}
-
-		if sessionExist > 0 {
-			// call logout handler
-			Logouthandler()
 		}
 
 		// if resp.success true then create session cookie
@@ -178,17 +172,31 @@ func Loginhandler() http.HandlerFunc {
 
 			cookie.SessionToken = uuid.NewV4().String()
 			cookie.Userid = int(curUser.ID)
-			cookie.MaxAge = 1800
+			// cookie.MaxAge = 1800
 
-			Resp.Cookie = cookie
+			if sessionExist > 0 {
+				// update session in database
+				var newSession crud.UpdateUserSessionParams
+				newSession.UserID = int64(cookie.Userid)
+				newSession.SessionToken = cookie.SessionToken
+				query.UpdateUserSession(context.Background(), newSession)
 
-			// add session to database
-			var session crud.CreateSessionParams
-			_, err = query.CreateSession(context.Background(), session)
+			} else {
+				// add session to database
+				var session crud.CreateSessionParams
+				session.SessionToken = cookie.SessionToken
+				session.UserID = int64(cookie.Userid)
+				_, err = query.CreateSession(context.Background(), session)
 
-			if err != nil {
-				fmt.Println("Unable to create session!")
+				if err != nil {
+					fmt.Println("Unable to create session!")
+				}
 			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:  "session_token",
+				Value: cookie.SessionToken,
+			})
 		}
 
 		// Marshals the response struct to a json object
@@ -267,30 +275,15 @@ func Reghandler() http.HandlerFunc {
 		} else {
 
 			// ### ATTEMPT TO ADD USER TO DATABASE ###
-			var curUser crud.User
-			curUser, err := query.CreateUser(context.Background(), regPayload)
+			// var curUser crud.User
+			_, err := query.CreateUser(context.Background(), regPayload)
 
 			if err != nil {
 				Resp.Success = false
 				fmt.Println("Unable to create user!")
 			}
 
-			// create cookie
-			var cookie SessionCookie
-
-			cookie.SessionToken = uuid.NewV4().String()
-			cookie.Userid = int(curUser.ID)
-			cookie.MaxAge = 1800
-
-			Resp.Cookie = cookie
-
-			// add session to database
-			var session crud.CreateSessionParams
-			_, err = query.CreateSession(context.Background(), session)
-
-			if err != nil {
-				fmt.Println("Unable to create session!")
-			}
+			http.Redirect(w, r, "/", http.StatusFound)
 
 		}
 
@@ -303,6 +296,7 @@ func Reghandler() http.HandlerFunc {
 
 		// Sets the http headers and writes the response to the browser
 		WriteHttpHeader(jsonResp, w)
+
 	}
 }
 
@@ -321,6 +315,7 @@ func Logouthandler() http.HandlerFunc {
 
 		// Declares the handler response
 		Resp := AuthResponse{Success: true}
+		Resp.Label = "logout"
 
 		// ### CONNECT TO DATABASE ###
 
