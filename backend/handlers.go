@@ -317,9 +317,36 @@ func Logouthandler() http.HandlerFunc {
 		Resp := AuthResponse{Success: true}
 		Resp.Label = "logout"
 
+		c, err := r.Cookie("session_token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				// If the cookie is not set, return an unauthorized status
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			// For any other type of error, return a bad request status
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		sessionToken := c.Value
+
 		// ### CONNECT TO DATABASE ###
 
+		db := db.DbConnect()
+
+		var query *crud.Queries
+
+		query = crud.New(db)
+
 		// ### REMOVE SESSION COOKIE FROM DATABASE AND BROWSER ###
+
+		query.DeleteSession(context.Background(), sessionToken)
+
+		http.SetCookie(w, &http.Cookie{
+			Name:  "session_token",
+			Value: "",
+		})
 
 		// Marshals the response struct to a json object
 		jsonResp, err := json.Marshal(Resp)
